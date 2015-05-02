@@ -10,7 +10,6 @@ import Data.Aeson
 {-import Data.Maybe-}
 import Control.Monad
 
-
 type StageFunction = Int           -- ^ worker id
                    -> Int          -- ^ num of partions of output
                    -> [String]     -- ^ inputs

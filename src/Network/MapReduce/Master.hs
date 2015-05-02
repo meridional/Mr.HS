@@ -2,8 +2,6 @@
 
 -- The contract between the master and the worker:
 --  after accepting connection:
---    Worker send: Ping _
---    Server send: Pong "ack"
 --    Server now knows worker and start scheduling 
 
 module Network.MapReduce.Master where
@@ -97,10 +95,7 @@ echo conn = do
 
 -- | register a worker and send it into the worker chan 
 register :: Connection -> Chan Connection -> IO ()
-register conn wc = do
-    m <- receive conn
-    case m of (ControlMessage (Ping _)) -> writeChan wc conn
-              _ -> send conn (ControlMessage (Close (fromIntegral (0 :: Int)) ""))
+register conn wc = writeChan wc conn
 
 -- | the IO action for the ws server
 serve :: Chan Connection -> PendingConnection ->  IO ()
