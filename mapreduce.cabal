@@ -16,7 +16,11 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Network.FileSystem, Network.MapReduce, Network.MapReduce.Master
+  exposed-modules:     Network.FileSystem
+                     , Network.MapReduce
+                     , Network.MapReduce.Types
+                     , Network.MapReduce.Master
+                     , Network.Mapreduce.Worker
   -- other-modules:       
   other-extensions:    GADTs, TypeFamilies, FlexibleContexts, OverloadedStrings, RankNTypes, Safe
   build-depends:       base >=4.7 && <4.8

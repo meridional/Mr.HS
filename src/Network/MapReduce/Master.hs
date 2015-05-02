@@ -7,6 +7,7 @@
 --    Server now knows worker and start scheduling 
 
 module Network.MapReduce.Master where
+  -- XXX: control output list
 
 import Network.WebSockets
 import Network.MapReduce.Types
@@ -109,11 +110,11 @@ serve wc p = do
     if path == "/" then acceptRequest p >>= \c -> register c wc
                    else rejectRequest p "wrong path" 
 
-masterWithJob :: [[String]]    -- ^ first batch of input
-              -> [Int]         -- ^ number of reducers 
-              -> Int           -- ^ port to listen on
-              -> IO [[String]]
-masterWithJob input rc p = do
+startMasterWith :: [[String]]         -- ^ first batch of input
+                -> [Int]              -- ^ number of reducers 
+                -> Int                -- ^ port to listen on
+                -> IO [[String]]
+startMasterWith input rc p = do
     job <- newJob input rc {- XXX: maybe move this logic out of this file? -}
     wsserver <- forkIO $ runServer "127.0.0.1" p (serve (jobWorkerChan job))
     out <- runJob job
