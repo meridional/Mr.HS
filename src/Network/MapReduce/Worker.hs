@@ -32,7 +32,9 @@ executeCmd wfs (WorkerCmd wid sid input rc) =
 work :: WorkerFunctions -> Connection -> IO ()
 work wfs master = forever $ do
     putStrLn "worker alive"
-    f <- fmap extractWorkCmd (receiveDataMessage master)
+    m <- receiveDataMessage master
+    let f = extractWorkCmd m
+    print m
     print f
     maybe (return ()) (executeCmd wfs >=> phoneHome master) f
     

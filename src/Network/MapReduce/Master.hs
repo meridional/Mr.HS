@@ -13,26 +13,28 @@ import Control.Applicative
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
+import Control.Monad
 import Data.UUID.V4
 import Data.UUID (toString)
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Maybe
 import Data.List (transpose)
+import qualified Data.ByteString.Lazy as BL
 
 uniqueID :: IO String
 uniqueID = fmap toString nextRandom
 
 data Job = Job {
          jobID :: String                     -- ^ unique identifier
-       , jobWorkerChan :: Chan Connection    -- ^ idle workers will be placed here
+       , jobWorkerChan :: Chan Worker        -- ^ idle workers will be placed here
        , jobReducerCount :: [Int]            -- ^ number of reducers of next stages, implies the number of stages
        , jobInputs :: [[String]]             -- ^ inputs into the current stage
        , jobStageID :: Int                   -- ^ current stage id
        }
 
 data Stage = Stage {
-          workerChan :: Chan Connection      -- ^ idle workers
+          workerChan :: Chan Worker          -- ^ idle workers
         , stageID :: Int                     -- ^ stage id
         , stageInputs :: [[String]]          -- ^ inputs into the stage
         , stageReducerCount :: Int           
@@ -46,14 +48,14 @@ currentStage (Job _ wc rc input sid) = fmap (Stage wc sid input) (listToMaybe rc
 -- | fetch one idle worker and send it the cmd
 -- restart if anything goes wrong in between
 -- put back the worker if success
-cmdWorker :: Chan Connection       -- ^ chan of idle worker 
+cmdWorker :: Chan Worker           -- ^ chan of idle worker 
           -> WorkerCmd
           -> IO [String]           -- ^ outputs
 cmdWorker wc workerCmd = do
-    w <- readChan wc
+    w@(Worker ic oc) <- readChan wc
     putStrLn "got worker"
-    sendDataMessage w (Text (encode workerCmd))
-    m <- catch (fmap Just (receiveData w)) 
+    putMVar oc (DataMessage (Text (encode workerCmd)))
+    m <- catch (fmap Just (takeMVar ic))
                ((\_ -> putStrLn "error" >> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
     let r = m >>= decode
     -- if failed, restart the work
@@ -101,13 +103,31 @@ echo conn = do
 register :: Connection -> Chan Connection -> IO ()
 register conn wc = putStrLn "register" >> writeChan wc conn
 
+data Worker = Worker {
+            inVar :: MVar BL.ByteString          -- ^ message received
+          , outVar :: MVar Message         -- ^ message to be sent
+            }
+
+newWorker :: IO Worker
+newWorker = do
+    m <- newEmptyMVar
+    m' <- newEmptyMVar
+    return (Worker m m')
+
+workerManipulator :: Connection -> Worker -> IO ()
+workerManipulator conn (Worker ivar ovar) = forever $ do
+  m <- takeMVar ovar
+  send conn m
+  i <- receiveData conn
+  putMVar ivar i
+
 -- | the IO action for the ws server
-serve :: Chan Connection -> PendingConnection ->  IO ()
+serve :: Chan Worker -> PendingConnection ->  IO ()
 serve wc p = do
-    let path = requestPath (pendingRequest p)
-    print path
-    if path == "/" then acceptRequest p >>= \c -> writeChan wc c --register c wc
-                   else rejectRequest p "wrong path" 
+    c <- acceptRequest p
+    w <- newWorker
+    writeChan wc w
+    workerManipulator c w
 
 startMasterWith :: [[String]]         -- ^ first batch of input
                 -> [Int]              -- ^ number of reducers 

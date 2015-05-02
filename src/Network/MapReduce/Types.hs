@@ -1,10 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
 module Network.MapReduce.Types where
 
 
 import Data.Aeson
-import Control.Applicative
-import Control.Monad
+{-import Control.Applicative-}
+{-import Control.Monad-}
+import GHC.Generics
 
 
 -- | Defines the data to pass to the worker 
@@ -13,14 +14,19 @@ data WorkerCmd = WorkerCmd {
         , wcStageID :: Int
         , wcInput :: [String]
         , wcReducerCount :: Int
-        } deriving Show
+        } deriving (Show, Generic)
 
+instance FromJSON WorkerCmd
+instance ToJSON WorkerCmd
+
+{-
 instance FromJSON WorkerCmd where
-    parseJSON (Object v) = WorkerCmd <$>
-                           v .: "wid" <*>
-                           v .: "sid" <*>
-                           v .: "inputs" <*>
-                           v .: "rc" 
+    parseJSON (Object v) = do
+      l <- v .: "inputs"
+      wid <- v .: "wid"
+      sid <- v .: "sid"
+      rc  <- v .: "rc"
+      return $ WorkerCmd wid sid l rc
     parseJSON _ = mzero
 
 instance ToJSON WorkerCmd where
@@ -29,3 +35,4 @@ instance ToJSON WorkerCmd where
                                                    "inputs" .= inputs,
                                                    "rc" .= rc]
 
+-}
