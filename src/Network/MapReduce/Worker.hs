@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Network.Mapreduce.Worker where
+module Network.MapReduce.Worker where
 
 -- TODO: restrict export 
 
@@ -22,15 +22,18 @@ extractWorkCmd (Binary _) = Nothing
 extractWorkCmd (Text t) = decode t
 
 phoneHome :: Connection -> [String] -> IO ()
-phoneHome conn result = sendDataMessage conn (Text (encode result))
+phoneHome conn result = print result >> sendDataMessage conn (Text (encode result))
 
 executeCmd :: WorkerFunctions -> WorkerCmd -> IO [String]
 executeCmd wfs (WorkerCmd wid sid input rc) =
+    putStrLn "executing" >>
     (wfs !! sid) wid rc input
 
 work :: WorkerFunctions -> Connection -> IO ()
 work wfs master = forever $ do
+    putStrLn "worker alive"
     f <- fmap extractWorkCmd (receiveDataMessage master)
+    print f
     maybe (return ()) (executeCmd wfs >=> phoneHome master) f
     
 startWorkerWith :: WorkerFunctions       

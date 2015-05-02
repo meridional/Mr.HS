@@ -9,6 +9,7 @@ module Network.MapReduce.Master where
 
 import Network.WebSockets
 import Network.MapReduce.Types
+import Control.Applicative
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
@@ -17,6 +18,7 @@ import Data.UUID (toString)
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Maybe
+import Data.List (transpose)
 
 uniqueID :: IO String
 uniqueID = fmap toString nextRandom
@@ -49,17 +51,18 @@ cmdWorker :: Chan Connection       -- ^ chan of idle worker
           -> IO [String]           -- ^ outputs
 cmdWorker wc workerCmd = do
     w <- readChan wc
+    putStrLn "got worker"
     sendDataMessage w (Text (encode workerCmd))
     m <- catch (fmap Just (receiveData w)) 
-               ((\_ -> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
+               ((\_ -> putStrLn "error" >> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
     let r = m >>= decode
     -- if failed, restart the work
     -- otherwise put worker back into the idle pool
     maybe (cmdWorker wc workerCmd) (\val -> writeChan wc w >> return val) r
 
--- | run workers in parallel
+-- | run workers in parallel, returns a list of partitioned output
 runStage :: Stage -> IO [[String]]
-runStage (Stage wc i inputs rc) = 
+runStage (Stage wc i inputs rc) = transpose <$>
     mapConcurrently (\(input, wid) -> cmdWorker wc (WorkerCmd wid i input rc))
                     (zip inputs [0..])
 
@@ -77,6 +80,7 @@ runJob :: Job -> IO [[String]]
 runJob j@(Job jid wc rc inputs sid)
   | null rc = return inputs
   | otherwise = do
+      putStrLn $ "Stage : " ++ show sid
       next <- runStage (fromJust $ currentStage j) -- XXX: avoid fromJust
       runJob (Job jid wc (tail rc) next (sid + 1))
 
@@ -95,24 +99,25 @@ echo conn = do
 
 -- | register a worker and send it into the worker chan 
 register :: Connection -> Chan Connection -> IO ()
-register conn wc = writeChan wc conn
+register conn wc = putStrLn "register" >> writeChan wc conn
 
 -- | the IO action for the ws server
 serve :: Chan Connection -> PendingConnection ->  IO ()
 serve wc p = do
     let path = requestPath (pendingRequest p)
     print path
-    if path == "/" then acceptRequest p >>= \c -> register c wc
+    if path == "/" then acceptRequest p >>= \c -> writeChan wc c --register c wc
                    else rejectRequest p "wrong path" 
 
 startMasterWith :: [[String]]         -- ^ first batch of input
                 -> [Int]              -- ^ number of reducers 
+                -> String             -- ^ Host
                 -> Int                -- ^ port to listen on
                 -> IO [[String]]
-startMasterWith input rc p = do
+startMasterWith input rc host p = do
     job <- newJob input rc {- XXX: maybe move this logic out of this file? -}
-    wsserver <- forkIO $ runServer "127.0.0.1" p (serve (jobWorkerChan job))
+    wsserver <- forkIO $ runServer host p (serve (jobWorkerChan job))
     out <- runJob job
+    putStrLn "Job finished"
     killThread wsserver
     return out
-
