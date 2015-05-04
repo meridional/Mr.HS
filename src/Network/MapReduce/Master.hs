@@ -13,14 +13,12 @@ import Control.Applicative
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Exception
-import Control.Monad
 import Data.UUID.V4
 import Data.UUID (toString)
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString)
 import Data.Maybe
 import Data.List (transpose)
-import qualified Data.ByteString.Lazy as BL
 
 uniqueID :: IO String
 uniqueID = fmap toString nextRandom
@@ -85,18 +83,6 @@ runJob j@(Job jid wc rc inputs sid)
       next <- runStage (fromJust $ currentStage j) -- XXX: avoid fromJust
       runJob (Job jid wc (tail rc) next (sid + 1))
 
-
-{-
-echo :: Connection -> IO ()
-echo conn = do
-    putStrLn "serve"
-    m <- receive conn
-    case m of (ControlMessage (Close _ _)) -> send conn (ControlMessage (Close (fromIntegral (0 :: Int)) ""))
-              (ControlMessage (Ping "Worker")) -> send conn (ControlMessage (Pong "hello, worker")) >> echo conn
-              (ControlMessage (Ping _)) -> send conn (ControlMessage (Pong "hello")) >> echo conn
-              (ControlMessage _) -> echo conn
-              _ -> send conn m >> echo conn
--}
 
 -- | register a worker and send it into the worker chan 
 register :: Connection -> Chan Connection -> IO ()
