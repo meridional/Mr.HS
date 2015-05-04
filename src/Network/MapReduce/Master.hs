@@ -53,11 +53,11 @@ cmdWorker wc workerCmd = do
     w <- readChan wc
     let conn = wconn w
     m <- catch (send conn (DataMessage (Text (encode workerCmd))) >> fmap Just (receiveData conn))
-               ((\_ -> shutDownWorker w >> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
+               ((\_ -> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
     let r = m >>= decode
     -- if failed, restart the work
-    -- otherwise put worker back into the idle pool
-    maybe (cmdWorker wc workerCmd) (\val -> writeChan wc w >> return val) r
+    -- otherwise put worker back into the idle pool and return the value
+    maybe (shutDownWorker w >> cmdWorker wc workerCmd) (\val -> writeChan wc w >> return val) r
 
 -- | run workers in parallel, returns a list of partitioned output
 runStage :: Stage -> IO [[String]]
