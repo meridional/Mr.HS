@@ -19,20 +19,3 @@ data WorkerCmd = WorkerCmd {
 instance FromJSON WorkerCmd
 instance ToJSON WorkerCmd
 
-{-
-instance FromJSON WorkerCmd where
-    parseJSON (Object v) = do
-      l <- v .: "inputs"
-      wid <- v .: "wid"
-      sid <- v .: "sid"
-      rc  <- v .: "rc"
-      return $ WorkerCmd wid sid l rc
-    parseJSON _ = mzero
-
-instance ToJSON WorkerCmd where
-    toJSON (WorkerCmd wid sid inputs rc) = object ["wid" .= show wid,
-                                                   "sid" .= show sid,
-                                                   "inputs" .= inputs,
-                                                   "rc" .= rc]
-
--}
