@@ -121,6 +121,6 @@ startMasterWith input rc host p = do
     wsserver <- forkIO $ runServer host p (serve (jobWorkerChan job))
     out <- runJob job
     putStrLn "Job finished"
-    getChanContents (jobWorkerChan job) >>= mapM_ shutDownWorker
+    {-getChanContents (jobWorkerChan job) >>= mapM_ shutDownWorker-}
     killThread wsserver
     return out

@@ -3,15 +3,14 @@ module Network.MapReduce.Classic
 
 where
 
-
 import Network.MapReduce
 import Data.Binary
 import Data.UUID.V4
 import Data.UUID
 import Control.Monad
 import qualified Data.Map as M
-import GHC.Exts (sortWith)
 import Control.Applicative ((<$>))
+import Control.Concurrent
 
 type MapperFun k v = String            -- ^ file name
                    -> String           -- ^ contents of the file
@@ -41,7 +40,7 @@ mapperToStageFun mf hf _ parts (input:_) = do
 
 reducerToStageFun :: (Binary k, Ord k, Binary v) => ReducerFun k v -> StageFunction
 reducerToStageFun rf _ _ inputs = do
-    contents <- sortWith fst . concat <$> mapM decodeFile inputs
+    contents <- fmap (M.toList . foldr (\(k, v) -> M.insertWith (++) k v) M.empty  .  concat) (mapM decodeFile inputs)
     let x = rf contents
     fname <- fmap toString nextRandom
     writeFile fname x
@@ -64,4 +63,4 @@ mapreduceWith :: (Binary k, Ord k, Binary v) =>
               -> (IO [String], IO ())     -- ^ (master computation , worker computation)
 mapreduceWith mhr inputs partitions host port =
     (head <$> startMasterWith (map (:[]) inputs) [partitions, 1] host port,
-     mapreduceWorkerWith mhr host port)
+     threadDelay 1000000 >> mapreduceWorkerWith mhr host port)

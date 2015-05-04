@@ -21,6 +21,7 @@ library
                      , Network.MapReduce.Types
                      , Network.MapReduce.Master
                      , Network.MapReduce.Worker
+                     , Network.MapReduce.Classic
   -- other-modules:       
   other-extensions:    GADTs, TypeFamilies, FlexibleContexts, OverloadedStrings, RankNTypes, Safe
   build-depends:       base
@@ -48,4 +49,13 @@ executable pingpong
                      , mapreduce
                      , bytestring
                      , unix
-                     
+
+executable wc
+  main-is:             wc.hs
+  Hs-Source-Dirs:      src/examples
+  default-language:    Haskell2010
+  build-depends:       binary
+                     , base 
+                     , mapreduce
+                     , bytestring
+                     , unix
