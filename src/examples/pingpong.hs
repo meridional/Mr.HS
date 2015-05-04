@@ -20,12 +20,12 @@ testFunction wid rc input = do
     
 
 master :: IO [[String]]
-master = startMasterWith [["hello", "world"], ["world", "hello"]] [5, 9] host port
+master = startMasterWith [["hello", "world"], ["world", "hello"]] [20, 30, 40] host port
 
 main :: IO ()
 main = do
-    {-replicateM_ 4 (void $ forkIO $ threadDelay 1000000 >> void (startWorkerWith [testFunction, testFunction] host port))-}
-    forkProcess $ putStrLn "master" >> void master 
+    forkIO $ putStrLn "master" >> void master 
     threadDelay 100000
-    startWorkerWith [testFunction, testFunction] host port
+    replicateM_ 4 (void $ forkIO $ threadDelay 1000000 >> void (startWorkerWith [testFunction, testFunction, testFunction] host port))
+    startWorkerWith [testFunction, testFunction, testFunction] host port
     return ()

@@ -52,11 +52,10 @@ cmdWorker :: Chan Worker           -- ^ chan of idle worker
           -> WorkerCmd
           -> IO [String]           -- ^ outputs
 cmdWorker wc workerCmd = do
-    w@(Worker ic oc) <- readChan wc
-    putStrLn "got worker"
-    putMVar oc (DataMessage (Text (encode workerCmd)))
-    m <- catch (fmap Just (takeMVar ic))
-               ((\_ -> putStrLn "error" >> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
+    w <- readChan wc
+    let conn = wconn w
+    m <- catch (send conn (DataMessage (Text (encode workerCmd))) >> fmap Just (receiveData conn))
+               ((\_ -> shutDownWorker w >> return Nothing) :: ConnectionException -> IO (Maybe ByteString))
     let r = m >>= decode
     -- if failed, restart the work
     -- otherwise put worker back into the idle pool
@@ -104,30 +103,27 @@ register :: Connection -> Chan Connection -> IO ()
 register conn wc = putStrLn "register" >> writeChan wc conn
 
 data Worker = Worker {
-            inVar :: MVar BL.ByteString          -- ^ message received
-          , outVar :: MVar Message         -- ^ message to be sent
+            wconn :: Connection              -- ^ ws connection
+          , closeVar :: MVar ()              -- ^ signal for close
             }
 
-newWorker :: IO Worker
-newWorker = do
-    m <- newEmptyMVar
-    m' <- newEmptyMVar
-    return (Worker m m')
+shutDownWorker :: Worker -> IO ()
+shutDownWorker (Worker _ c) = putMVar c ()
 
-workerManipulator :: Connection -> Worker -> IO ()
-workerManipulator conn (Worker ivar ovar) = forever $ do
-  m <- takeMVar ovar
-  send conn m
-  i <- receiveData conn
-  putMVar ivar i
+newWorker :: Connection -> IO Worker
+newWorker c = do
+    m <- newEmptyMVar
+    return (Worker c m)
+
 
 -- | the IO action for the ws server
 serve :: Chan Worker -> PendingConnection ->  IO ()
 serve wc p = do
     c <- acceptRequest p
-    w <- newWorker
+    w <- newWorker c
     writeChan wc w
-    workerManipulator c w
+    takeMVar (closeVar w)
+    sendClose c ("" :: ByteString)
 
 startMasterWith :: [[String]]         -- ^ first batch of input
                 -> [Int]              -- ^ number of reducers 
@@ -139,5 +135,6 @@ startMasterWith input rc host p = do
     wsserver <- forkIO $ runServer host p (serve (jobWorkerChan job))
     out <- runJob job
     putStrLn "Job finished"
+    getChanContents (jobWorkerChan job) >>= mapM_ shutDownWorker
     killThread wsserver
     return out
