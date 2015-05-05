@@ -5,6 +5,7 @@ First you need:
 
 1. Haskell compiler [GHC](https://www.haskell.org/ghc/)
 2. build tool [cabal](https://www.haskell.org/cabal/).
+
 The easy way to install these two is to install
 [the Haskell Platform](https://www.haskell.org/platform/).
 
@@ -23,3 +24,6 @@ Master and Worker communicate via WebSockets by exchaning messages in JSON forma
 So Master program is can interface with worker servers implemented in any 
 programming languages with any framework. Of course, the implementation that 
 I provided here is in Haskell.
+
+## Examples
+Examples using the framework can be found in the `src/examples/` directory.
