@@ -2,10 +2,11 @@
 
 ## To build
 First you need: 
-1. Haskell compiler [GHC]("https://www.haskell.org/ghc/")
-2. build tool [cabal]("https://www.haskell.org/cabal/").
+
+1. Haskell compiler [GHC](https://www.haskell.org/ghc/)
+2. build tool [cabal](https://www.haskell.org/cabal/).
 The easy way to install these two is to install
-[the Haskell Platform]("https://www.haskell.org/platform/").
+[the Haskell Platform](https://www.haskell.org/platform/).
 
 Second, in the root dir of this repo, type
 ```.shell
