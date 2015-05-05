@@ -23,5 +23,5 @@ main = do
           (mapper, const 1, reducer) s 1 "127.0.0.1" 8080
     if null s
       then printUsage
-      else replicateM_ (length s) (forkIO worker) >> master >>= BL.readFile . head
+      else replicateM_ 4 {- fork 4 workers -} (forkIO (threadDelay 1000 >> worker)) >> master >>= BL.readFile . head
         >>= BL.putStrLn

@@ -15,11 +15,12 @@ import Data.Binary
 import Data.UUID.V4
 import Data.UUID
 import Control.Monad
-import qualified Data.Map as M
+import qualified Data.IntMap as I
 import Control.Applicative ((<$>))
 import Control.Concurrent
 import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as BL
+import GHC.Exts
 
 type MapperFun k v = String            -- ^ file name
                    -> ByteString           -- ^ contents of the file
@@ -32,6 +33,9 @@ type ReducerFun k v = [(k, [v])]
 
 type MRFun k v = (MapperFun k v, HashFun k, ReducerFun k v)
 
+groupKV :: (Ord k) => [(k, v)] -> [(k, [v])]
+groupKV = map (\l@(x:_) -> (fst x, map snd l)) . groupWith fst
+
 -- | Output file of the mapper is guranteed to be sorted and partitioned
 -- according to the hash function, each reducer still need to merge the
 -- sorted partitions
@@ -39,9 +43,9 @@ mapperToStageFun :: (Binary k, Ord k, Binary v) => MapperFun k v -> HashFun k ->
 mapperToStageFun _ _ _ _ [] = error "empty input"
 mapperToStageFun mf hf _ parts (input:_) = do
     contents <- BL.readFile input
-    let r = foldr (\(k,v) acc -> M.insertWith (++) k [v] acc) M.empty (mf input contents)
-        empty = M.fromList $ zip [0..(parts-1)] (repeat []) 
-        r' = M.toList $  M.foldrWithKey (\k vl acc -> M.insertWith (++) (hf k `mod` parts) [(k, vl)] acc) empty r
+    let r = groupKV (mf input contents)
+        empty = I.fromList $ zip [0..(parts-1)] (repeat []) 
+        r' = I.toList $ foldr (\(k,vl) acc -> I.insertWith (++) (hf k `mod` parts) [(k, vl)] acc) empty r
     forM r' (\((_, kvs) :: (Int, [(k, [v])])) -> do
       fname <- fmap toString nextRandom
       encodeFile fname kvs 
@@ -49,7 +53,8 @@ mapperToStageFun mf hf _ parts (input:_) = do
 
 reducerToStageFun :: (Binary k, Ord k, Binary v) => ReducerFun k v -> StageFunction
 reducerToStageFun rf _ _ inputs = do
-    contents <- fmap (M.toList . foldr (uncurry (M.insertWith (++))) M.empty  .  concat) (mapM decodeFile inputs)
+    {-contents <- fmap (M.toList . foldr (uncurry (M.insertWith (++))) M.empty  .  concat) (mapM ( groupKV . concat . decodeFile inputs)-}
+    contents <- fmap (map (\(k,vs) -> (k, concat vs)) . groupKV . concat) (mapM decodeFile inputs) 
     let x = rf contents
     fname <- fmap toString nextRandom
     BL.writeFile fname x
@@ -72,4 +77,4 @@ mapreduceWith :: (Binary k, Ord k, Binary v) =>
               -> (IO [String], IO ())     -- ^ (master computation , worker computation)
 mapreduceWith mhr inputs partitions host port =
     (head <$> startMasterWith (map (:[]) inputs) [partitions, 1] host port,
-     threadDelay 1000 >> mapreduceWorkerWith mhr host port)
+     mapreduceWorkerWith mhr host port)

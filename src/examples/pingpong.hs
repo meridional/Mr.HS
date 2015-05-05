@@ -4,7 +4,6 @@ import Network.MapReduce.Worker
 import Control.Concurrent
 import Text.Printf
 import Control.Monad
-import System.Posix.Process
 
 port :: Int
 port = 8080
@@ -24,8 +23,6 @@ master = startMasterWith [["hello", "world"], ["world", "hello"]] [20, 30, 40] h
 
 main :: IO ()
 main = do
-    forkIO $ putStrLn "master" >> void master 
-    threadDelay 100000
     replicateM_ 4 (void $ forkIO $ threadDelay 1000000 >> void (startWorkerWith [testFunction, testFunction, testFunction] host port))
-    startWorkerWith [testFunction, testFunction, testFunction] host port
+    master >>= print 
     return ()
