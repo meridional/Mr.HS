@@ -28,7 +28,7 @@ type MapperFun k v = String            -- ^ file name
 type HashFun k = k -> Int
 
 type ReducerFun k v = [(k, [v])]
-                    -> ByteString           -- ^ arbitrary string
+                    -> ByteString           -- ^ output string
 
 type MRFun k v = (MapperFun k v, HashFun k, ReducerFun k v)
 

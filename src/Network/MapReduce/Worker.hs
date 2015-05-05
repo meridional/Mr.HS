@@ -9,12 +9,10 @@ module Network.MapReduce.Worker
 
 where
 
--- TODO: restrict export 
 
 import Network.MapReduce.Types
 import Network.WebSockets
 import Data.Aeson
-{-import Data.Maybe-}
 import Control.Monad
 
 type StageFunction = Int           -- ^ worker id
