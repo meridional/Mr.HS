@@ -20,9 +20,9 @@ The code for a generalized multi-stage map reduce worker is in `Network.MapReduc
 You can also find an implementation of the classic type safe MapReduce on top
 of Mr. HS in `Network.MapReduce.Classic` module.
 
-Master and Worker communicate via WebSockets by exchaning messages in JSON format.
-So Master program is can interface with worker servers implemented in any 
-programming languages with any framework. Of course, the implementation that 
+Master and Worker communicate via WebSockets by exchanging messages in JSON format.
+So Master program can interface with worker servers implemented in any 
+programming language using any framework. Of course, the implementation that 
 I provided here is in Haskell.
 
 ## Examples
