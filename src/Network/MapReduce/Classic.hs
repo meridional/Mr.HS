@@ -17,7 +17,7 @@ import Data.UUID
 import Control.Monad
 import qualified Data.IntMap as I
 import Control.Applicative ((<$>))
-import Control.Concurrent
+import qualified Data.DList as DL
 import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import GHC.Exts
@@ -44,8 +44,8 @@ mapperToStageFun _ _ _ _ [] = error "empty input"
 mapperToStageFun mf hf _ parts (input:_) = do
     contents <- BL.readFile input
     let r = groupKV (mf input contents)
-        empty = I.fromList $ zip [0..(parts-1)] (repeat []) 
-        r' = I.toList $ foldr (\(k,vl) acc -> I.insertWith (++) (hf k `mod` parts) [(k, vl)] acc) empty r
+        empty = I.fromList $ zip [0..(parts-1)] (repeat DL.empty) 
+        r' = map (\(k, dl) -> (k, DL.toList dl)) . I.toList $ foldr (\(k,vl) acc -> I.insertWith DL.append (hf k `mod` parts) (DL.singleton (k, vl)) acc) empty r
     forM r' (\((_, kvs) :: (Int, [(k, [v])])) -> do
       fname <- fmap toString nextRandom
       encodeFile fname kvs 
@@ -53,7 +53,6 @@ mapperToStageFun mf hf _ parts (input:_) = do
 
 reducerToStageFun :: (Binary k, Ord k, Binary v) => ReducerFun k v -> StageFunction
 reducerToStageFun rf _ _ inputs = do
-    {-contents <- fmap (M.toList . foldr (uncurry (M.insertWith (++))) M.empty  .  concat) (mapM ( groupKV . concat . decodeFile inputs)-}
     contents <- fmap (map (\(k,vs) -> (k, concat vs)) . groupKV . concat) (mapM decodeFile inputs) 
     let x = rf contents
     fname <- fmap toString nextRandom
