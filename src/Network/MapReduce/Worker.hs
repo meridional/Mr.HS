@@ -26,12 +26,10 @@ phoneHome conn result = print result >> sendDataMessage conn (Text (encode resul
 
 executeCmd :: WorkerFunctions -> WorkerCmd -> IO [String]
 executeCmd wfs (WorkerCmd wid sid input rc) =
-    putStrLn "executing" >>
     (wfs !! sid) wid rc input
 
 work :: WorkerFunctions -> Connection -> IO ()
 work wfs master = forever $ do
-    putStrLn "worker alive"
     m <- receiveDataMessage master
     let f = extractWorkCmd m
     print m

@@ -1,15 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 import Network.MapReduce.Classic
-import Text.Printf
 import System.Environment
 import Control.Monad
 import Control.Concurrent
+import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.ByteString.Builder
+import Data.Monoid
 
-mapper :: MapperFun String Int
-mapper _ v = map (\x -> (x, 1)) (words v)
+mapper :: MapperFun BL.ByteString Int
+mapper _ v = map (\x -> (x, 1)) (BL.words v)
 
-reducer :: ReducerFun String Int
-reducer = unlines . map (\(k, l) -> printf "%s %d" k (length l)) 
+reducer :: ReducerFun BL.ByteString Int
+reducer = BL.unlines . map (\(k, l) -> toLazyByteString $ lazyByteString k <> char8 ' ' <> intDec (length l))
 
 printUsage :: IO ()
 printUsage = putStrLn "./wc [files]"

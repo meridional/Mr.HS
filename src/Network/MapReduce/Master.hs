@@ -79,14 +79,13 @@ runJob :: Job -> IO [[String]]
 runJob j@(Job jid wc rc inputs sid)
   | null rc = return inputs
   | otherwise = do
-      putStrLn $ "Stage : " ++ show sid
       next <- runStage (fromJust $ currentStage j) -- XXX: avoid fromJust
       runJob (Job jid wc (tail rc) next (sid + 1))
 
 
 -- | register a worker and send it into the worker chan 
 register :: Connection -> Chan Connection -> IO ()
-register conn wc = putStrLn "register" >> writeChan wc conn
+register conn wc = writeChan wc conn
 
 data Worker = Worker {
             wconn :: Connection              -- ^ ws connection
@@ -120,7 +119,5 @@ startMasterWith input rc host p = do
     job <- newJob input rc {- XXX: maybe move this logic out of this file? -}
     wsserver <- forkIO $ runServer host p (serve (jobWorkerChan job))
     out <- runJob job
-    putStrLn "Job finished"
-    {-getChanContents (jobWorkerChan job) >>= mapM_ shutDownWorker-}
     killThread wsserver
     return out

@@ -11,15 +11,17 @@ import Control.Monad
 import qualified Data.Map as M
 import Control.Applicative ((<$>))
 import Control.Concurrent
+import Data.ByteString.Lazy.Char8 (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as BL
 
 type MapperFun k v = String            -- ^ file name
-                   -> String           -- ^ contents of the file
+                   -> ByteString           -- ^ contents of the file
                    -> [(k, v)]         -- ^ output
 
 type Hash k = k -> Int
 
 type ReducerFun k v = [(k, [v])]
-                    -> String           -- ^ arbitrary string
+                    -> ByteString           -- ^ arbitrary string
 
 type MRFun k v = (MapperFun k v, Hash k, ReducerFun k v)
 
@@ -29,7 +31,7 @@ type MRFun k v = (MapperFun k v, Hash k, ReducerFun k v)
 mapperToStageFun :: (Binary k, Ord k, Binary v) => MapperFun k v -> Hash k -> StageFunction
 mapperToStageFun _ _ _ _ [] = error "empty input"
 mapperToStageFun mf hf _ parts (input:_) = do
-    contents <- readFile input
+    contents <- BL.readFile input
     let r = foldr (\(k,v) acc -> M.insertWith (++) k [v] acc) M.empty (mf input contents)
         empty = M.fromList $ zip [0..(parts-1)] (repeat []) 
         r' = M.toList $  M.foldrWithKey (\k vl acc -> M.insertWith (++) (hf k `mod` parts) [(k, vl)] acc) empty r
@@ -40,10 +42,10 @@ mapperToStageFun mf hf _ parts (input:_) = do
 
 reducerToStageFun :: (Binary k, Ord k, Binary v) => ReducerFun k v -> StageFunction
 reducerToStageFun rf _ _ inputs = do
-    contents <- fmap (M.toList . foldr (\(k, v) -> M.insertWith (++) k v) M.empty  .  concat) (mapM decodeFile inputs)
+    contents <- fmap (M.toList . foldr (uncurry (M.insertWith (++))) M.empty  .  concat) (mapM decodeFile inputs)
     let x = rf contents
     fname <- fmap toString nextRandom
-    writeFile fname x
+    BL.writeFile fname x
     return [fname]
 
 mapreduceWorkerWith :: (Binary k, Ord k, Binary v) =>
@@ -63,4 +65,4 @@ mapreduceWith :: (Binary k, Ord k, Binary v) =>
               -> (IO [String], IO ())     -- ^ (master computation , worker computation)
 mapreduceWith mhr inputs partitions host port =
     (head <$> startMasterWith (map (:[]) inputs) [partitions, 1] host port,
-     threadDelay 1000000 >> mapreduceWorkerWith mhr host port)
+     threadDelay 1000 >> mapreduceWorkerWith mhr host port)
