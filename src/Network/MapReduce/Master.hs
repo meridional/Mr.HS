@@ -4,8 +4,14 @@
 --  after accepting connection:
 --    Server now knows worker and start scheduling 
 
-module Network.MapReduce.Master where
+module Network.MapReduce.Master 
+(
+  startMasterWith
+)
+  
+where
   -- XXX: control output list
+
 
 import Network.WebSockets
 import Network.MapReduce.Types
@@ -82,10 +88,6 @@ runJob j@(Job jid wc rc inputs sid)
       next <- runStage (fromJust $ currentStage j) -- XXX: avoid fromJust
       runJob (Job jid wc (tail rc) next (sid + 1))
 
-
--- | register a worker and send it into the worker chan 
-register :: Connection -> Chan Connection -> IO ()
-register conn wc = writeChan wc conn
 
 data Worker = Worker {
             wconn :: Connection              -- ^ ws connection

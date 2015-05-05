@@ -1,6 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Network.MapReduce.Worker where
+module Network.MapReduce.Worker 
+(
+  startWorkerWith
+, StageFunction
+, WorkerFunctions
+)
+
+where
 
 -- TODO: restrict export 
 

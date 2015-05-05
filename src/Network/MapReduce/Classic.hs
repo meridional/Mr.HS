@@ -1,5 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Network.MapReduce.Classic 
+(
+  mapreduceWith
+, MapperFun
+, HashFun
+, ReducerFun
+, MRFun
+)
 
 where
 
@@ -18,17 +25,17 @@ type MapperFun k v = String            -- ^ file name
                    -> ByteString           -- ^ contents of the file
                    -> [(k, v)]         -- ^ output
 
-type Hash k = k -> Int
+type HashFun k = k -> Int
 
 type ReducerFun k v = [(k, [v])]
                     -> ByteString           -- ^ arbitrary string
 
-type MRFun k v = (MapperFun k v, Hash k, ReducerFun k v)
+type MRFun k v = (MapperFun k v, HashFun k, ReducerFun k v)
 
 -- | Output file of the mapper is guranteed to be sorted and partitioned
 -- according to the hash function, each reducer still need to merge the
 -- sorted partitions
-mapperToStageFun :: (Binary k, Ord k, Binary v) => MapperFun k v -> Hash k -> StageFunction
+mapperToStageFun :: (Binary k, Ord k, Binary v) => MapperFun k v -> HashFun k -> StageFunction
 mapperToStageFun _ _ _ _ [] = error "empty input"
 mapperToStageFun mf hf _ parts (input:_) = do
     contents <- BL.readFile input
