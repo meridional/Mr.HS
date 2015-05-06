@@ -27,3 +27,6 @@ I provided here is in Haskell.
 
 ## Examples
 Examples using the framework can be found in the `src/examples/` directory.
+
+## Documentation
+For detailed documentation, refer to `doc/mapreduce.pdf`.
