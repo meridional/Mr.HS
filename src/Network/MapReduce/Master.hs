@@ -16,7 +16,6 @@ module Network.MapReduce.Master
 )
   
 where
-  -- XXX: control output list
 
 
 import Network.WebSockets

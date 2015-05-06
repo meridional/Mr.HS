@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+
+{-|
+Module: Network.MapReduce.Types
+The types that is shared by Master and Worker are defined here
+-}
 module Network.MapReduce.Types where
 
 
 import Data.Aeson
-{-import Control.Applicative-}
-{-import Control.Monad-}
 import GHC.Generics
 
 
