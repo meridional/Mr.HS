@@ -1,5 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{-|
+Module: Network.MapReduce.Master
+Use this module to create an IO action that runs on the master server
+The main function: startMasterWith
+-}
+
 -- The contract between the master and the worker:
 --  after accepting connection:
 --    Server now knows worker and start scheduling 

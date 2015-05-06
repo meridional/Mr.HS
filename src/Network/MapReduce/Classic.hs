@@ -1,4 +1,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+
+{-|
+Module: Network.MapReduce.Classic
+An implementation of classic mapreduce that is type safe
+
+use mapreduceWith to produce (master, worker) IO actions
+Note that you need mapper and reducer to have matching types
+in order to pass the compiler
+-}
+
 module Network.MapReduce.Classic 
 (
   mapreduceWith

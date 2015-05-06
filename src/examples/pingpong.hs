@@ -13,16 +13,14 @@ host = "127.0.0.1"
 
 testFunction :: StageFunction
 testFunction wid rc input = do
-    printf "%d %d\n" wid rc
-    print input
-    return $ map (\x -> printf "%d" x ++ show input) [1..rc]
+    return $ map (\x -> concat input) [1..rc]
     
 
 master :: IO [[String]]
-master = startMasterWith [["hello", "world"], ["world", "hello"]] [20, 30, 40] host port
+master = startMasterWith [["ping"], ["pong"]] [2,3,4,5,6] host port
 
 main :: IO ()
 main = do
-    replicateM_ 4 (void $ forkIO $ threadDelay 1000000 >> void (startWorkerWith [testFunction, testFunction, testFunction] host port))
+    replicateM_ 4 (void $ forkIO $ threadDelay 1000000 >> void (startWorkerWith [testFunction, testFunction, testFunction, testFunction, testFunction] host port))
     master >>= print 
     return ()
