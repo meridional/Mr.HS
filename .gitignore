@@ -38,3 +38,10 @@ Cabal/ghc.mk
 # TAGS files
 TAGS
 tags
+
+# doc files
+doc/mapreduce.aux
+doc/mapreduce.log
+doc/mapreduce.dvi
+doc/mapreduce.bbl
+doc/mapreduce.blg
